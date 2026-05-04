@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warehouse Live Operations · BI Dashboard</title>
+<style>
+  /* ---------- Base ---------- */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    color: #1a2233;
+    background: #f4f6fa;
+    line-height: 1.4;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  :root {
+    --bg: #f4f6fa;
+    --panel: #ffffff;
+    --panel-2: #fbfcfe;
+    --border: #e4e8ef;
+    --border-2: #eef1f6;
+    --text: #1a2233;
+    --text-muted: #6b7588;
+    --text-dim: #8a93a6;
+    --brand: #2c4cc4;
+    --brand-soft: #eaf0ff;
+
+    --ok: #1f9d55;
+    --ok-bg: #e7f6ee;
+    --warn: #d97706;
+    --warn-bg: #fff3e0;
+    --bad: #c0392b;
+    --bad-bg: #fde8e6;
+    --neutral: #5b6478;
+    --neutral-bg: #eef0f4;
+
+    --shadow: 0 1px 2px rgba(20,30,60,0.04), 0 1px 0 rgba(20,30,60,0.02);
+  }
+
+  /* ---------- Layout ---------- */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 230px;
+    background: #0f1a36;
+    color: #cfd6e4;
+    padding: 18px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar .brand {
+    padding: 0 20px 18px 20px;
+    border-bottom: 1px solid #1d2a4a;
+    margin-bottom: 12px;
+  }
+  .sidebar .brand .logo {
+    display: flex; align-items: center; gap: 10px;
+    color: #fff; font-weight: 700; font-size: 15px; letter-spacing: 0.2px;
+  }
+  .sidebar .brand .logo .dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #34d399;
+    box-shadow: 0 0 0 3px rgba(52,211,153,0.18);
+  }
+  .sidebar .brand .sub {
+    color: #7a87a6; font-size: 11px; margin-top: 4px;
+  }
+  .nav-section { padding: 6px 12px; }
+  .nav-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: #6776a0; padding: 10px 8px 6px 8px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px; color: #cfd6e4;
+    font-size: 13px; cursor: pointer; margin-bottom: 2px;
+    border: none; background: transparent; width: 100%; text-align: left;
+    font-family: inherit;
+  }
+  .nav-item:hover { background: #182547; color: #fff; }
+  .nav-item.active { background: #1f3168; color: #fff; }
+  .nav-item .num {
+    margin-left: auto; font-size: 11px; color: #8a96b8;
+    background: #182547; padding: 2px 7px; border-radius: 10px;
+  }
+  .nav-item.active .num { background: #2c4cc4; color: #fff; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; }
+  .topbar {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 10px 24px; display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .topbar h1 { font-size: 15px; font-weight: 600; }
+  .topbar .crumbs { color: var(--text-muted); font-size: 12px; }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #e7f6ee; color: #1f9d55; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px; font-size: 11px;
+  }
+  .live-badge .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: #1f9d55;
+    box-shadow: 0 0 0 0 rgba(31,157,85,0.5);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(31,157,85,0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(31,157,85,0); }
+    100% { box-shadow: 0 0 0 0 rgba(31,157,85,0); }
+  }
+  .topbar .meta {
+    color: var(--text-muted); font-size: 12px;
+  }
+  .btn {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; font-size: 12px; cursor: pointer; color: var(--text);
+    font-family: inherit;
+  }
+  .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .btn:hover { background: #f7f9fc; }
+  .btn.primary:hover { background: #2440a8; }
+
+  /* Tab strip (under topbar) */
+  .tabs {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 0 24px; display: flex; gap: 4px; overflow-x: auto;
+    position: sticky; top: 51px; z-index: 4;
+  }
+  .tab {
+    padding: 12px 14px; cursor: pointer; font-size: 13px; color: var(--text-muted);
+    border: none; background: transparent; font-family: inherit;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap; font-weight: 500;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--brand); border-bottom-color: var(--brand); font-weight: 600; }
+
+  .content { padding: 22px 24px 60px 24px; }
+
+  /* Tab pages */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Section */
+  .section { margin-bottom: 28px; }
+  .section-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-header h2 {
+    font-size: 18px; font-weight: 700; letter-spacing: -0.2px;
+  }
+  .section-header .desc {
+    color: var(--text-muted); font-size: 12px; margin-top: 2px;
+  }
+  .overview .section-header h2 { font-size: 22px; }
+
+  /* Cards */
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .card.compact { padding: 12px 14px; }
+  .card-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px;
+    color: var(--text-muted); font-weight: 600; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card-title .info {
+    font-weight: 500; text-transform: none; letter-spacing: 0;
+    color: var(--text-dim); font-size: 11px;
+  }
+
+  .grid { display: grid; gap: 12px; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-5 { grid-template-columns: repeat(5, 1fr); }
+  .grid-6 { grid-template-columns: repeat(6, 1fr); }
+  .grid-7 { grid-template-columns: repeat(7, 1fr); }
+
+  /* KPI */
+  .kpi {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; overflow: hidden;
+  }
+  .kpi .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--text-muted); font-weight: 600;
+  }
+  .kpi .value {
+    font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .kpi .sub {
+    font-size: 11px; color: var(--text-muted); display: flex; gap: 8px;
+    align-items: center;
+  }
+  .kpi.ok    { border-left: 3px solid var(--ok); }
+  .kpi.warn  { border-left: 3px solid var(--warn); }
+  .kpi.bad   { border-left: 3px solid var(--bad); }
+  .kpi.neutral{border-left: 3px solid var(--neutral); }
+  .kpi.brand { border-left: 3px solid var(--brand); }
+
+  .kpi.big .value { font-size: 32px; }
+  .kpi.lg .value { font-size: 28px; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; font-size: 11px; font-weight: 600;
+    border-radius: 999px;
+  }
+  .badge.ok    { background: var(--ok-bg); color: var(--ok); }
+  .badge.warn  { background: var(--warn-bg); color: var(--warn); }
+  .badge.bad   { background: var(--bad-bg); color: var(--bad); }
+  .badge.neutral{background: var(--neutral-bg); color: var(--neutral); }
+  .badge.brand { background: var(--brand-soft); color: var(--brand); }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot.ok { background: var(--ok); }
+  .dot.warn { background: var(--warn); }
+  .dot.bad { background: var(--bad); }
+  .dot.neutral { background: var(--neutral); }
+  .dot.brand { background: var(--brand); }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  thead th {
+    text-align: left; font-weight: 600; color: var(--text-muted);
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;
+    background: #fafbfd;
+  }
+  tbody td {
+    padding: 9px 10px; border-bottom: 1px solid var(--border-2);
+    color: var(--text); vertical-align: middle;
+  }
+  tbody tr:hover { background: #f9fafd; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* Transposed metric table (activities as columns, metrics as rows) */
+  table.matrix tbody th {
+    text-align: left; font-weight: 600; color: var(--text-muted);
+    padding: 9px 10px; border-bottom: 1px solid var(--border-2);
+    background: #fafbfd; font-size: 12px; text-transform: none; letter-spacing: 0;
+    border-right: 1px solid var(--border);
+  }
+  table.matrix tbody td {
+    text-align: right; font-variant-numeric: tabular-nums; font-weight: 500;
+  }
+  table.matrix thead th {
+    text-align: right;
+  }
+  table.matrix thead th:first-child { text-align: left; }
+
+  /* Progress bars */
+  .pbar {
+    height: 6px; background: #eef1f6; border-radius: 4px; overflow: hidden;
+    position: relative;
+  }
+  .pbar > span {
+    display: block; height: 100%; border-radius: 4px;
+  }
+  .pbar.ok    > span { background: var(--ok); }
+  .pbar.warn  > span { background: var(--warn); }
+  .pbar.bad   > span { background: var(--bad); }
+  .pbar.brand > span { background: var(--brand); }
+  .pbar.split { display: flex; }
+  .pbar.split > span { display: block; height: 100%; }
+
+  /* Bar charts (static) */
+  .bars {
+    display: flex; align-items: flex-end; gap: 6px;
+    height: 110px; padding-top: 6px;
+  }
+  .bars .bar {
+    flex: 1; background: var(--brand-soft); position: relative;
+    border-radius: 3px 3px 0 0; min-height: 4px;
+    color: var(--brand); display: flex; flex-direction: column;
+    justify-content: flex-end; align-items: center;
+  }
+  .bars .bar > span.v {
+    position: absolute; top: -16px; font-size: 10px; color: var(--text-muted);
+    font-weight: 600;
+  }
+  .bars .bar.ok    { background: #d6f0e0; }
+  .bars .bar.warn  { background: #ffe5c2; }
+  .bars .bar.bad   { background: #fbd5d0; }
+  .bars .bar.brand { background: #d8e2ff; }
+  .bars .bar.solid-ok    { background: var(--ok); }
+  .bars .bar.solid-warn  { background: var(--warn); }
+  .bars .bar.solid-bad   { background: var(--bad); }
+  .bars .bar.solid-brand { background: var(--brand); }
+
+  .bars-x {
+    display: flex; gap: 6px; margin-top: 4px;
+  }
+  .bars-x .x {
+    flex: 1; text-align: center; font-size: 10px; color: var(--text-muted);
+  }
+
+  /* Horizontal bar list */
+  .hbars { display: flex; flex-direction: column; gap: 8px; }
+  .hbar {
+    display: grid; grid-template-columns: 160px 1fr 70px;
+    align-items: center; gap: 10px; font-size: 12px;
+  }
+  .hbar .label { color: var(--text); }
+  .hbar .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .hbar .track {
+    height: 8px; background: #eef1f6; border-radius: 4px; overflow: hidden;
+  }
+  .hbar .track > span {
+    display: block; height: 100%; border-radius: 4px;
+  }
+
+  /* Stacked donut faux (using conic-gradient) */
+  .donut {
+    --p-ok: 88;
+    --p-warn: 8;
+    --p-bad: 4;
+    width: 130px; height: 130px; border-radius: 50%;
+    background:
+      conic-gradient(
+        var(--ok) 0 calc(var(--p-ok) * 1%),
+        var(--warn) 0 calc((var(--p-ok) + var(--p-warn)) * 1%),
+        var(--bad) 0 100%
+      );
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .donut::before {
+    content: ""; position: absolute; inset: 14px;
+    background: #fff; border-radius: 50%;
+  }
+  .donut .center {
+    position: relative; z-index: 1; text-align: center;
+  }
+  .donut .center .v { font-size: 22px; font-weight: 700; }
+  .donut .center .l { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+  .legend { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; }
+  .legend .row .sw { width: 10px; height: 10px; border-radius: 2px; }
+  .legend .row .sw.ok   { background: var(--ok); }
+  .legend .row .sw.warn { background: var(--warn); }
+  .legend .row .sw.bad  { background: var(--bad); }
+  .legend .row .sw.neutral { background: var(--neutral); }
+  .legend .row .sw.brand { background: var(--brand); }
+  .legend .row .v { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Small list */
+  .list { display: flex; flex-direction: column; gap: 6px; }
+  .list .row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0; border-bottom: 1px dashed var(--border-2);
+    font-size: 12px;
+  }
+  .list .row:last-child { border-bottom: none; }
+  .list .row .label { color: var(--text); }
+  .list .row .val { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Two-column */
+  .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .two-one { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .one-two { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+
+  /* Chip row */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: #f0f3fa; color: var(--text-muted);
+    padding: 3px 9px; border-radius: 999px; font-size: 11px;
+  }
+
+  /* Dividers and small ui */
+  .hr { height: 1px; background: var(--border); margin: 12px 0; }
+  .muted { color: var(--text-muted); }
+  .small { font-size: 11px; }
+  .right { text-align: right; }
+  .strong { font-weight: 600; }
+  .pill {
+    display: inline-block; padding: 1px 7px; border-radius: 4px;
+    background: var(--neutral-bg); color: var(--neutral); font-size: 11px;
+    font-weight: 600;
+  }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+  .pill.brand { background: var(--brand-soft); color: var(--brand); }
+
+  /* Footer label row */
+  .lbl-row {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    color: var(--text-muted); font-size: 11px;
+  }
+
+  /* Summary tile (used inside overview groups) */
+  .tile {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 10px 12px; border-radius: 8px;
+    background: #fafbfd; border: 1px solid var(--border-2);
+  }
+  .tile .l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600;}
+  .tile .v { font-size: 18px; font-weight: 700; }
+  .tile.ok    { border-left: 3px solid var(--ok); }
+  .tile.warn  { border-left: 3px solid var(--warn); }
+  .tile.bad   { border-left: 3px solid var(--bad); }
+  .tile.brand { border-left: 3px solid var(--brand); }
+  .tile.neutral { border-left: 3px solid var(--neutral); }
+
+  /* Group header inside overview */
+  .group-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px; margin-top: 4px;
+  }
+  .group-header .t { font-size: 13px; font-weight: 700; }
+  .group-header .desc { font-size: 11px; color: var(--text-muted); }
+
+  @media (max-width: 1280px) {
+    .grid-7 { grid-template-columns: repeat(4, 1fr); }
+    .grid-6 { grid-template-columns: repeat(3, 1fr); }
+    .grid-5 { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 980px) {
+    .sidebar { display: none; }
+    .grid-4, .grid-5, .grid-6, .grid-7 { grid-template-columns: repeat(2, 1fr); }
+    .two-col, .two-one, .one-two, .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <!-- ======== SIDEBAR ======== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">
+        <span class="dot"></span>
+        WH Live Ops
+      </div>
+      <div class="sub">Warehouse · BRNO-01 · Live</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Control</div>
+      <button class="nav-item active" data-tab="overview">
+        <span>Overview</span>
+        <span class="num">★</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Operations</div>
+      <button class="nav-item" data-tab="backlog">
+        <span>Active orders / Backlog</span>
+        <span class="num">2,418</span>
+      </button>
+      <button class="nav-item" data-tab="tasks">
+        <span>Active tasks</span>
+        <span class="num">964</span>
+      </button>
+      <button class="nav-item" data-tab="sla">
+        <span>Delay / SLA</span>
+        <span class="num">7%</span>
+      </button>
+      <button class="nav-item" data-tab="inbound">
+        <span>Inbound speed</span>
+        <span class="num">312</span>
+      </button>
+      <button class="nav-item" data-tab="expedition">
+        <span>Expedition &amp; Last Mile</span>
+        <span class="num">1,742</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Performance</div>
+      <button class="nav-item" data-tab="efficiency">
+        <span>Efficiency</span>
+        <span class="num">87%</span>
+      </button>
+      <button class="nav-item" data-tab="users">
+        <span>User mgmt / Capacity</span>
+        <span class="num">42</span>
+      </button>
+    </div>
+
+    <div class="nav-section" style="margin-top: 18px;">
+      <div class="nav-title">Filters</div>
+      <div style="padding: 0 8px; display:flex; flex-direction:column; gap:6px;">
+        <div class="chip">Channel: All</div>
+        <div class="chip">Country: CZ, SK, DE…</div>
+        <div class="chip">Shift: Day</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ======== MAIN ======== -->
+  <main class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div>
+        <h1>Warehouse Live Operations</h1>
+        <div class="crumbs">Site BRNO-01 · Day shift · Manager view</div>
+      </div>
+      <div class="right">
+        <span class="live-badge"><span class="pulse"></span> LIVE · refresh 30s</span>
+        <span class="meta">Updated 14:32:08 · Mon, 4 May 2026</span>
+        <button class="btn">Last 24h</button>
+        <button class="btn primary">Export snapshot</button>
+      </div>
+    </div>
+
+    <!-- Tab strip -->
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="backlog">Active Orders / Backlog</button>
+      <button class="tab" data-tab="tasks">Active Tasks</button>
+      <button class="tab" data-tab="sla">Delay / SLA</button>
+      <button class="tab" data-tab="inbound">Inbound Speed</button>
+      <button class="tab" data-tab="expedition">Expedition &amp; Last Mile</button>
+      <button class="tab" data-tab="efficiency">Efficiency</button>
+      <button class="tab" data-tab="users">User Management / Capacity</button>
+    </nav>
+
+    <div class="content">
+
+      <!-- ======================================================
+           OVERVIEW TAB
+           ====================================================== -->
+      <section class="page active overview" id="page-overview">
+        <div class="section-header">
+          <div>
+            <h2>Overview · Warehouse Control Panel</h2>
+            <div class="desc">Live high-level summary across all reports.</div>
+          </div>
+        </div>
+
+        <!-- Headline strip -->
+        <div class="grid grid-5" style="margin-bottom: 14px;">
+          <div class="kpi big brand">
+            <div class="label">Total active orders</div>
+            <div class="value">2,418</div>
+          </div>
+          <div class="kpi lg ok">
+            <div class="label">SLA met</div>
+            <div class="value">93.0%</div>
+          </div>
+          <div class="kpi lg warn">
+            <div class="label">Orders at risk</div>
+            <div class="value">187</div>
+          </div>
+          <div class="kpi lg bad">
+            <div class="label">Breached orders</div>
+            <div class="value">42</div>
+          </div>
+          <div class="kpi lg ok">
+            <div class="label">Efficiency</div>
+            <div class="value">87 items/h</div>
+          </div>
+        </div>
+
+        <!-- ===== Backlog summary ===== -->
+        <div class="card" style="margin-bottom: 14px;">
+          <div class="group-header">
+            <span class="pill brand">Backlog</span>
+            <div class="t">Active orders summary</div>
+            <div style="margin-left:auto;" class="muted small">From: Active Orders / Backlog</div>
+          </div>
+          <div class="grid grid-7">
+            <div class="tile brand">
+              <div class="l">Total active</div>
+              <div class="v">2,418</div>
+            </div>
+            <div class="tile">
+              <div class="l">From today</div>
+              <div class="v">1,902</div>
+            </div>
+            <div class="tile">
+              <div class="l">Previous days</div>
+              <div class="v">516</div>
+            </div>
+            <div class="tile">
+              <div class="l">B2B active</div>
+              <div class="v">684</div>
+            </div>
+            <div class="tile">
+              <div class="l">D2C active</div>
+              <div class="v">1,734</div>
+            </div>
+            <div class="tile warn">
+              <div class="l">At risk</div>
+              <div class="v">187</div>
+            </div>
+            <div class="tile bad">
+              <div class="l">Blocked</div>
+              <div class="v">38</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Active tasks summary ===== -->
+        <div class="card" style="margin-bottom: 14px;">
+          <div class="group-header">
+            <span class="pill brand">Active tasks</span>
+            <div class="t">Workload across activities</div>
+            <div style="margin-left:auto;" class="muted small">From: Active Tasks</div>
+          </div>
+          <div class="grid grid-5">
+            <div class="tile">
+              <div class="l">Awaiting picking</div>
+              <div class="v">412</div>
+            </div>
+            <div class="tile">
+              <div class="l">Awaiting packing</div>
+              <div class="v">287</div>
+            </div>
+            <div class="tile">
+              <div class="l">Awaiting expedition</div>
+              <div class="v">156</div>
+            </div>
+            <div class="tile">
+              <div class="l">Awaiting replenishment</div>
+              <div class="v">61</div>
+            </div>
+            <div class="tile">
+              <div class="l">Awaiting inbound</div>
+              <div class="v">48</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SLA summary + Inbound summary ===== -->
+        <div class="two-col" style="margin-bottom: 14px;">
+          <div class="card">
+            <div class="group-header">
+              <span class="pill brand">SLA</span>
+              <div class="t">SLA / delay summary</div>
+              <div style="margin-left:auto;" class="muted small">From: Delay / SLA</div>
+            </div>
+            <div class="grid grid-2" style="gap:14px; align-items:center;">
+              <div style="display:flex; gap:18px; align-items:center;">
+                <div class="donut" style="--p-ok:93; --p-warn:5; --p-bad:2;">
+                  <div class="center">
+                    <div class="v">93%</div>
+                    <div class="l">SLA met</div>
+                  </div>
+                </div>
+                <div class="legend" style="flex:1;">
+                  <div class="row"><span class="sw ok"></span> SLA met <span class="v">2,189</span></div>
+                  <div class="row"><span class="sw warn"></span> At risk <span class="v">187</span></div>
+                  <div class="row"><span class="sw bad"></span> Breached <span class="v">42</span></div>
+                  <div class="row"><span class="sw neutral"></span> Total active <span class="v">2,418</span></div>
+                </div>
+              </div>
+              <div class="grid grid-2" style="gap:8px;">
+                <div class="tile ok">
+                  <div class="l">Met</div>
+                  <div class="v">93.0%</div>
+                </div>
+                <div class="tile warn">
+                  <div class="l">Not met</div>
+                  <div class="v">7.0%</div>
+                </div>
+                <div class="tile warn">
+                  <div class="l">At risk</div>
+                  <div class="v">187</div>
+                </div>
+                <div class="tile bad">
+                  <div class="l">Breached</div>
+                  <div class="v">42</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="group-header">
+              <span class="pill brand">Inbound</span>
+              <div class="t">Inbound summary</div>
+              <div style="margin-left:auto;" class="muted small">From: Inbound Speed</div>
+            </div>
+            <div class="grid grid-2" style="gap:8px;">
+              <div class="tile">
+                <div class="l">Inbound backlog</div>
+                <div class="v">312</div>
+                <div class="small muted">items · 18 PVs · 6 POs</div>
+              </div>
+              <div class="tile brand">
+                <div class="l">In progress</div>
+                <div class="v">204</div>
+                <div class="small muted">items · 11 PVs · 4 POs</div>
+              </div>
+              <div class="tile">
+                <div class="l">Delivered → inbound</div>
+                <div class="v">2h 47m</div>
+              </div>
+              <div class="tile bad">
+                <div class="l">OOS / low stock</div>
+                <div class="v">17</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Expedition + Efficiency ===== -->
+        <div class="two-col" style="margin-bottom: 14px;">
+          <div class="card">
+            <div class="group-header">
+              <span class="pill brand">Expedition &amp; Last Mile</span>
+              <div class="t">Shipping flow today</div>
+              <div style="margin-left:auto;" class="muted small">From: Expedition &amp; Last Mile</div>
+            </div>
+            <div class="grid grid-5">
+              <div class="tile brand">
+                <div class="l">Created today</div>
+                <div class="v">2,300</div>
+              </div>
+              <div class="tile ok">
+                <div class="l">Already shipped</div>
+                <div class="v">1,742</div>
+              </div>
+              <div class="tile warn">
+                <div class="l">Remaining</div>
+                <div class="v">558</div>
+              </div>
+              <div class="tile">
+                <div class="l">Handed to carrier</div>
+                <div class="v">1,489</div>
+              </div>
+              <div class="tile bad">
+                <div class="l">Delayed in transport</div>
+                <div class="v">63</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="group-header">
+              <span class="pill brand">Efficiency</span>
+              <div class="t">Throughput &amp; idle</div>
+              <div style="margin-left:auto;" class="muted small">From: Efficiency</div>
+            </div>
+            <div class="grid grid-3" style="gap:8px;">
+              <div class="tile brand">
+                <div class="l">Used hours</div>
+                <div class="v">284 h</div>
+              </div>
+              <div class="tile ok">
+                <div class="l">Efficiency</div>
+                <div class="v">87 items/h</div>
+              </div>
+              <div class="tile warn">
+                <div class="l">Idle time</div>
+                <div class="v">37.2 h</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== User management summary ===== -->
+        <div class="card" style="margin-bottom: 14px;">
+          <div class="group-header">
+            <span class="pill brand">User management</span>
+            <div class="t">Live capacity &amp; performance per activity</div>
+            <div class="desc">· picking · packing · expedition</div>
+            <div style="margin-left:auto;" class="muted small">From: User Management / Capacity</div>
+          </div>
+          <div class="grid grid-3" style="gap:12px; margin-bottom: 12px;">
+            <div class="tile brand">
+              <div class="l">Active headcount</div>
+              <div class="v">42</div>
+            </div>
+            <div class="tile warn">
+              <div class="l">Total idle time</div>
+              <div class="v">37.2 h</div>
+            </div>
+            <div class="tile">
+              <div class="l">Avg performance today</div>
+              <div class="v">87 items/h</div>
+            </div>
+          </div>
+
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th class="num">Picking</th>
+                <th class="num">Packing</th>
+                <th class="num">Expedition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><th>Active headcount</th><td>18</td><td>8</td><td>6</td></tr>
+              <tr><th>Backlog</th><td>412</td><td>287</td><td>156</td></tr>
+              <tr><th>Performance · L15 min</th><td>142 items/h</td><td>61 items/h</td><td>88 items/h</td></tr>
+              <tr><th>Performance · L30 min</th><td>138 items/h</td><td>64 items/h</td><td>86 items/h</td></tr>
+              <tr><th>Performance · L60 min</th><td>132 items/h</td><td>66 items/h</td><td>82 items/h</td></tr>
+              <tr><th>Performance · Today</th><td>128 items/h</td><td>68 items/h</td><td>79 items/h</td></tr>
+              <tr><th>Idle time</th><td>6.4 h</td><td>2.1 h</td><td>3.7 h</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           BACKLOG TAB
+           ====================================================== -->
+      <section class="page" id="page-backlog">
+        <div class="section-header">
+          <div>
+            <h2>Active orders / Stock transfers · Backlog</h2>
+            <div class="desc">Live order pool by channel, age and SLA risk.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom: 12px;">
+          <div class="kpi brand">
+            <div class="label">Total active</div>
+            <div class="value">2,418</div>
+          </div>
+          <div class="kpi">
+            <div class="label">B2B</div>
+            <div class="value">684</div>
+          </div>
+          <div class="kpi">
+            <div class="label">D2C</div>
+            <div class="value">1,734</div>
+          </div>
+          <div class="kpi warn">
+            <div class="label">Older than 24h</div>
+            <div class="value">516</div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-bottom: 12px;">
+          <div class="card">
+            <div class="card-title">Aging distribution <span class="info">live</span></div>
+            <div class="bars">
+              <div class="bar solid-ok" style="height: 70%;"><span class="v">1,488</span></div>
+              <div class="bar solid-ok" style="height: 50%;"><span class="v">612</span></div>
+              <div class="bar solid-warn" style="height: 30%;"><span class="v">231</span></div>
+              <div class="bar solid-bad" style="height: 14%;"><span class="v">87</span></div>
+            </div>
+            <div class="bars-x">
+              <div class="x">&lt; 1h</div>
+              <div class="x">1–3h</div>
+              <div class="x">3–6h</div>
+              <div class="x">6h+</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Created → dispatch time per channel</div>
+            <div class="hbars">
+              <div class="hbar">
+                <div class="label">D2C · CZ</div>
+                <div class="track"><span style="width: 38%; background: var(--brand);"></span></div>
+                <div class="val">2h 18m</div>
+              </div>
+              <div class="hbar">
+                <div class="label">D2C · SK</div>
+                <div class="track"><span style="width: 46%; background: var(--brand);"></span></div>
+                <div class="val">2h 44m</div>
+              </div>
+              <div class="hbar">
+                <div class="label">D2C · DE</div>
+                <div class="track"><span style="width: 64%; background: var(--brand);"></span></div>
+                <div class="val">3h 51m</div>
+              </div>
+              <div class="hbar">
+                <div class="label">B2B · CZ</div>
+                <div class="track"><span style="width: 72%; background: var(--brand);"></span></div>
+                <div class="val">4h 18m</div>
+              </div>
+              <div class="hbar">
+                <div class="label">B2B · International</div>
+                <div class="track"><span style="width: 90%; background: var(--brand);"></span></div>
+                <div class="val">5h 24m</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Backlog detail · today vs previous days</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Segment</th>
+                <th class="num">Total</th>
+                <th class="num">Today</th>
+                <th class="num">Prev. days</th>
+                <th class="num">At risk</th>
+                <th class="num">Blocked</th>
+                <th>Avg create → dispatch</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>D2C · CZ</strong></td>
+                <td class="num">812</td><td class="num">702</td><td class="num">110</td>
+                <td class="num">42</td><td class="num">7</td>
+                <td>2h 18m</td>
+              </tr>
+              <tr>
+                <td><strong>D2C · SK</strong></td>
+                <td class="num">416</td><td class="num">348</td><td class="num">68</td>
+                <td class="num">19</td><td class="num">2</td>
+                <td>2h 44m</td>
+              </tr>
+              <tr>
+                <td><strong>D2C · DE</strong></td>
+                <td class="num">506</td><td class="num">388</td><td class="num">118</td>
+                <td class="num">61</td><td class="num">9</td>
+                <td>3h 51m</td>
+              </tr>
+              <tr>
+                <td><strong>B2B · CZ</strong></td>
+                <td class="num">388</td><td class="num">298</td><td class="num">90</td>
+                <td class="num">31</td><td class="num">11</td>
+                <td>4h 18m</td>
+              </tr>
+              <tr>
+                <td><strong>B2B · International</strong></td>
+                <td class="num">296</td><td class="num">166</td><td class="num">130</td>
+                <td class="num">34</td><td class="num">9</td>
+                <td>5h 24m</td>
+              </tr>
+              <tr style="background:#fafbfd;">
+                <td><strong>Total</strong></td>
+                <td class="num"><strong>2,418</strong></td>
+                <td class="num"><strong>1,902</strong></td>
+                <td class="num"><strong>516</strong></td>
+                <td class="num"><strong>187</strong></td>
+                <td class="num"><strong>38</strong></td>
+                <td><strong>3h 11m</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           ACTIVE TASKS TAB
+           ====================================================== -->
+      <section class="page" id="page-tasks">
+        <div class="section-header">
+          <div>
+            <h2>Active tasks</h2>
+            <div class="desc">Workload per activity · live queue size and processing speed.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-5" style="margin-bottom: 12px;">
+          <div class="kpi">
+            <div class="label">Awaiting picking</div>
+            <div class="value">412</div>
+            <div class="sub muted">tasks · 4,318 items</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Awaiting packing</div>
+            <div class="value">287</div>
+            <div class="sub muted">tasks · 2,931 items</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Awaiting expedition</div>
+            <div class="value">156</div>
+            <div class="sub muted">tasks · 1,210 items</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Awaiting replenishment</div>
+            <div class="value">61</div>
+            <div class="sub muted">tasks · 488 items</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Awaiting inbound</div>
+            <div class="value">48</div>
+            <div class="sub muted">tasks · 1,802 items</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Workload, items and avg processing time</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Activity</th>
+                <th class="num">Tasks</th>
+                <th class="num">Items</th>
+                <th class="num">AVG / task</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Picking</td>
+                <td class="num">412</td>
+                <td class="num">4,318</td>
+                <td class="num">6m 12s</td>
+              </tr>
+              <tr>
+                <td>Packing</td>
+                <td class="num">287</td>
+                <td class="num">2,931</td>
+                <td class="num">9m 41s</td>
+              </tr>
+              <tr>
+                <td>Expedition</td>
+                <td class="num">156</td>
+                <td class="num">1,210</td>
+                <td class="num">3m 04s</td>
+              </tr>
+              <tr>
+                <td>Replenishment</td>
+                <td class="num">61</td>
+                <td class="num">488</td>
+                <td class="num">5m 22s</td>
+              </tr>
+              <tr>
+                <td>Inbound</td>
+                <td class="num">48</td>
+                <td class="num">1,802</td>
+                <td class="num">14m 06s</td>
+              </tr>
+              <tr style="background:#fafbfd;">
+                <td><strong>Total</strong></td>
+                <td class="num"><strong>964</strong></td>
+                <td class="num"><strong>10,749</strong></td>
+                <td class="num">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           DELAY / SLA TAB
+           ====================================================== -->
+      <section class="page" id="page-sla">
+        <div class="section-header">
+          <div>
+            <h2>Delay / SLA</h2>
+            <div class="desc">SLA compliance, at-risk and breached orders. Breakdown by channel and country.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom: 12px;">
+          <div class="kpi brand">
+            <div class="label">Total active</div>
+            <div class="value">2,418</div>
+          </div>
+          <div class="kpi ok">
+            <div class="label">SLA met</div>
+            <div class="value">93.0%</div>
+            <div class="sub muted">2,189 orders</div>
+          </div>
+          <div class="kpi warn">
+            <div class="label">At risk</div>
+            <div class="value">187</div>
+          </div>
+          <div class="kpi bad">
+            <div class="label">Breached</div>
+            <div class="value">42</div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-bottom: 12px;">
+          <div class="card">
+            <div class="card-title">Delay in expedition</div>
+            <div class="grid grid-3" style="gap:8px;">
+              <div class="tile">
+                <div class="l">Orders affected</div>
+                <div class="v">19</div>
+              </div>
+              <div class="tile">
+                <div class="l">SLA not met</div>
+                <div class="v">7%</div>
+              </div>
+              <div class="tile warn">
+                <div class="l">Avg delay</div>
+                <div class="v">28 min</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Delay in transport</div>
+            <div class="grid grid-3" style="gap:8px;">
+              <div class="tile">
+                <div class="l">Orders affected</div>
+                <div class="v">63</div>
+              </div>
+              <div class="tile">
+                <div class="l">SLA not met</div>
+                <div class="v">3.6%</div>
+              </div>
+              <div class="tile bad">
+                <div class="l">Avg delay</div>
+                <div class="v">1h 12m</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">SLA per channel</div>
+            <div class="hbars">
+              <div class="hbar">
+                <div class="label">D2C</div>
+                <div class="track"><span style="width: 95%; background: var(--ok);"></span></div>
+                <div class="val">95.1%</div>
+              </div>
+              <div class="hbar">
+                <div class="label">B2B</div>
+                <div class="track"><span style="width: 88%; background: var(--warn);"></span></div>
+                <div class="val">87.6%</div>
+              </div>
+              <div class="hbar">
+                <div class="label">Stock transfers</div>
+                <div class="track"><span style="width: 92%; background: var(--ok);"></span></div>
+                <div class="val">92.0%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">SLA per country</div>
+            <div class="hbars">
+              <div class="hbar">
+                <div class="label">CZ</div>
+                <div class="track"><span style="width: 96%; background: var(--ok);"></span></div>
+                <div class="val">96.2%</div>
+              </div>
+              <div class="hbar">
+                <div class="label">SK</div>
+                <div class="track"><span style="width: 94%; background: var(--ok);"></span></div>
+                <div class="val">94.0%</div>
+              </div>
+              <div class="hbar">
+                <div class="label">DE</div>
+                <div class="track"><span style="width: 86%; background: var(--warn);"></span></div>
+                <div class="val">85.8%</div>
+              </div>
+              <div class="hbar">
+                <div class="label">AT</div>
+                <div class="track"><span style="width: 90%; background: var(--warn);"></span></div>
+                <div class="val">90.0%</div>
+              </div>
+              <div class="hbar">
+                <div class="label">PL</div>
+                <div class="track"><span style="width: 78%; background: var(--bad);"></span></div>
+                <div class="val">77.8%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           INBOUND SPEED TAB
+           ====================================================== -->
+      <section class="page" id="page-inbound">
+        <div class="section-header">
+          <div>
+            <h2>Inbound speed</h2>
+            <div class="desc">From dock to stock — backlog, in-progress and stockout exposure.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom: 12px;">
+          <div class="kpi">
+            <div class="label">Delivered → inbound</div>
+            <div class="value">2h 47m</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Inbound backlog</div>
+            <div class="value">312</div>
+            <div class="sub muted">items · 18 PVs · 6 POs</div>
+          </div>
+          <div class="kpi brand">
+            <div class="label">Inbound in progress</div>
+            <div class="value">204</div>
+            <div class="sub muted">items · 11 PVs · 4 POs</div>
+          </div>
+          <div class="kpi bad">
+            <div class="label">OOS / low stock</div>
+            <div class="value">17</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Inbound queue · live detail</div>
+          <table>
+            <thead>
+              <tr>
+                <th>PV</th>
+                <th>Arrival time</th>
+                <th>PO</th>
+                <th>Inbound task</th>
+                <th class="num">Current stock</th>
+                <th>Flag</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>PV-99014 · Whey Protein 1kg</td>
+                <td>11:02</td>
+                <td>PO-7842</td>
+                <td>Inbound · book</td>
+                <td class="num">0</td>
+                <td><span class="pill bad">OOS</span></td>
+              </tr>
+              <tr>
+                <td>PV-99021 · BCAA 400g</td>
+                <td>11:18</td>
+                <td>PO-7842</td>
+                <td>Inbound · QC</td>
+                <td class="num">12</td>
+                <td><span class="pill warn">Low</span></td>
+              </tr>
+              <tr>
+                <td>PV-99033 · Creatine 500g</td>
+                <td>12:04</td>
+                <td>PO-7848</td>
+                <td>Inbound · putaway</td>
+                <td class="num">88</td>
+                <td><span class="pill ok">OK</span></td>
+              </tr>
+              <tr>
+                <td>PV-99041 · Vitamin D 60caps</td>
+                <td>12:22</td>
+                <td>PO-7849</td>
+                <td>Inbound · book</td>
+                <td class="num">4</td>
+                <td><span class="pill bad">OOS soon</span></td>
+              </tr>
+              <tr>
+                <td>PV-99048 · Shaker 600ml</td>
+                <td>12:54</td>
+                <td>PO-7851</td>
+                <td>Inbound · waiting</td>
+                <td class="num">132</td>
+                <td><span class="pill ok">OK</span></td>
+              </tr>
+              <tr>
+                <td>PV-99052 · Oat granola 1.5kg</td>
+                <td>13:11</td>
+                <td>PO-7853</td>
+                <td>Inbound · QC</td>
+                <td class="num">22</td>
+                <td><span class="pill warn">Low</span></td>
+              </tr>
+              <tr>
+                <td>PV-99060 · Greek yogurt 500g</td>
+                <td>13:28</td>
+                <td>PO-7855</td>
+                <td>Inbound · putaway</td>
+                <td class="num">204</td>
+                <td><span class="pill ok">OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           EXPEDITION & LAST MILE TAB
+           ====================================================== -->
+      <section class="page" id="page-expedition">
+        <div class="section-header">
+          <div>
+            <h2>Expedition &amp; Last Mile</h2>
+            <div class="desc">Today's shipping flow, carrier handovers and transport delays.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-5" style="margin-bottom: 12px;">
+          <div class="kpi brand">
+            <div class="label">Created today</div>
+            <div class="value">2,300</div>
+          </div>
+          <div class="kpi ok">
+            <div class="label">Already shipped</div>
+            <div class="value">1,742</div>
+          </div>
+          <div class="kpi warn">
+            <div class="label">Remaining</div>
+            <div class="value">558</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Handed to carrier</div>
+            <div class="value">1,489</div>
+          </div>
+          <div class="kpi bad">
+            <div class="label">Delayed in transport</div>
+            <div class="value">63</div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-bottom: 12px;">
+          <div class="card">
+            <div class="card-title">Today vs previous days</div>
+            <div class="hbars">
+              <div class="hbar">
+                <div class="label">From today</div>
+                <div class="track"><span style="width: 84%; background: var(--brand);"></span></div>
+                <div class="val">1,932</div>
+              </div>
+              <div class="hbar">
+                <div class="label">Previous days</div>
+                <div class="track"><span style="width: 16%; background: var(--warn);"></span></div>
+                <div class="val">368</div>
+              </div>
+            </div>
+            <div class="hr"></div>
+            <div class="card-title">SLA view</div>
+            <div class="grid grid-2" style="gap:8px;">
+              <div class="tile ok">
+                <div class="l">Not breached</div>
+                <div class="v">2,258</div>
+              </div>
+              <div class="tile bad">
+                <div class="l">Breached</div>
+                <div class="v">42</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Carrier view</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Carrier</th>
+                  <th class="num">Handed</th>
+                  <th class="num">Delayed</th>
+                  <th class="num">% delayed</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>DPD</td>
+                  <td class="num">612</td>
+                  <td class="num">14</td>
+                  <td class="num">2.3%</td>
+                </tr>
+                <tr>
+                  <td>GLS</td>
+                  <td class="num">388</td>
+                  <td class="num">22</td>
+                  <td class="num">5.7%</td>
+                </tr>
+                <tr>
+                  <td>DHL</td>
+                  <td class="num">261</td>
+                  <td class="num">8</td>
+                  <td class="num">3.1%</td>
+                </tr>
+                <tr>
+                  <td>PPL</td>
+                  <td class="num">142</td>
+                  <td class="num">12</td>
+                  <td class="num">8.5%</td>
+                </tr>
+                <tr>
+                  <td>Zásilkovna</td>
+                  <td class="num">86</td>
+                  <td class="num">7</td>
+                  <td class="num">8.1%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Per country</div>
+            <div class="hbars">
+              <div class="hbar"><div class="label">CZ</div><div class="track"><span style="width:62%;background: var(--brand);"></span></div><div class="val">1,082</div></div>
+              <div class="hbar"><div class="label">SK</div><div class="track"><span style="width:42%;background: var(--brand);"></span></div><div class="val">412</div></div>
+              <div class="hbar"><div class="label">DE</div><div class="track"><span style="width:32%;background: var(--brand);"></span></div><div class="val">388</div></div>
+              <div class="hbar"><div class="label">AT</div><div class="track"><span style="width:18%;background: var(--brand);"></span></div><div class="val">196</div></div>
+              <div class="hbar"><div class="label">PL</div><div class="track"><span style="width:14%;background: var(--brand);"></span></div><div class="val">142</div></div>
+              <div class="hbar"><div class="label">HU</div><div class="track"><span style="width:8%;background: var(--brand);"></span></div><div class="val">80</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Per channel</div>
+            <div class="hbars">
+              <div class="hbar"><div class="label">D2C · Web</div><div class="track"><span style="width:74%;background: var(--brand);"></span></div><div class="val">1,422</div></div>
+              <div class="hbar"><div class="label">D2C · Marketplace</div><div class="track"><span style="width:22%;background: var(--brand);"></span></div><div class="val">312</div></div>
+              <div class="hbar"><div class="label">B2B · Direct</div><div class="track"><span style="width:30%;background: var(--brand);"></span></div><div class="val">488</div></div>
+              <div class="hbar"><div class="label">B2B · International</div><div class="track"><span style="width:6%;background: var(--brand);"></span></div><div class="val">78</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           EFFICIENCY TAB
+           ====================================================== -->
+      <section class="page" id="page-efficiency">
+        <div class="section-header">
+          <div>
+            <h2>Efficiency</h2>
+            <div class="desc">Used hours, throughput per hour and idle time across the warehouse.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4" style="margin-bottom: 12px;">
+          <div class="kpi brand">
+            <div class="label">Used hours</div>
+            <div class="value">284 h</div>
+          </div>
+          <div class="kpi ok">
+            <div class="label">Efficiency</div>
+            <div class="value">87 items/h</div>
+          </div>
+          <div class="kpi warn">
+            <div class="label">Idle time</div>
+            <div class="value">37.2 h</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Items processed</div>
+            <div class="value">24,708</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Idle time per department</div>
+            <div class="hbars">
+              <div class="hbar"><div class="label">Picking</div><div class="track"><span style="width:14%; background: var(--brand);"></span></div><div class="val">6.4 h</div></div>
+              <div class="hbar"><div class="label">Packing</div><div class="track"><span style="width:6%; background: var(--brand);"></span></div><div class="val">2.1 h</div></div>
+              <div class="hbar"><div class="label">Expedition</div><div class="track"><span style="width:18%; background: var(--brand);"></span></div><div class="val">3.7 h</div></div>
+              <div class="hbar"><div class="label">Replenishment</div><div class="track"><span style="width:48%; background: var(--brand);"></span></div><div class="val">9.8 h</div></div>
+              <div class="hbar"><div class="label">Inbound</div><div class="track"><span style="width:74%; background: var(--brand);"></span></div><div class="val">15.2 h</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Items per hour · today</div>
+            <div class="bars" style="height: 140px;">
+              <div class="bar solid-brand" style="height: 30%;"><span class="v">62</span></div>
+              <div class="bar solid-brand" style="height: 55%;"><span class="v">74</span></div>
+              <div class="bar solid-brand" style="height: 78%;"><span class="v">88</span></div>
+              <div class="bar solid-brand" style="height: 92%;"><span class="v">96</span></div>
+              <div class="bar solid-brand" style="height: 84%;"><span class="v">91</span></div>
+              <div class="bar" style="height: 60%; background: #d8e2ff;"><span class="v">—</span></div>
+              <div class="bar" style="height: 40%; background: #d8e2ff;"><span class="v">—</span></div>
+              <div class="bar" style="height: 22%; background: #d8e2ff;"><span class="v">—</span></div>
+            </div>
+            <div class="bars-x">
+              <div class="x">06h</div><div class="x">08h</div><div class="x">10h</div><div class="x">12h</div>
+              <div class="x">14h</div><div class="x">16h</div><div class="x">18h</div><div class="x">20h</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           USER MANAGEMENT / CAPACITY TAB
+           ====================================================== -->
+      <section class="page" id="page-users">
+        <div class="section-header">
+          <div>
+            <h2>User management / Capacity</h2>
+            <div class="desc">Live headcount, backlog and performance per activity.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-3" style="margin-bottom: 12px;">
+          <div class="kpi brand">
+            <div class="label">Active headcount</div>
+            <div class="value">42</div>
+          </div>
+          <div class="kpi warn">
+            <div class="label">Total idle time</div>
+            <div class="value">37.2 h</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Avg performance</div>
+            <div class="value">87 items/h</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 12px;">
+          <div class="card-title">Per activity · live capacity &amp; performance</div>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th class="num">Picking</th>
+                <th class="num">Packing</th>
+                <th class="num">Expedition</th>
+                <th class="num">Replenishment</th>
+                <th class="num">Inbound</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Headcount</th>
+                <td>18</td><td>8</td><td>6</td><td>5</td><td>5</td>
+              </tr>
+              <tr>
+                <th>Backlog</th>
+                <td>412</td><td>287</td><td>156</td><td>61</td><td>48</td>
+              </tr>
+              <tr>
+                <th>Performance · L15 min</th>
+                <td>142 items/h</td><td>61 items/h</td><td>88 items/h</td><td>42 items/h</td><td>36 items/h</td>
+              </tr>
+              <tr>
+                <th>Performance · L30 min</th>
+                <td>138 items/h</td><td>64 items/h</td><td>86 items/h</td><td>44 items/h</td><td>38 items/h</td>
+              </tr>
+              <tr>
+                <th>Performance · L60 min</th>
+                <td>132 items/h</td><td>66 items/h</td><td>82 items/h</td><td>45 items/h</td><td>38 items/h</td>
+              </tr>
+              <tr>
+                <th>Performance · Today</th>
+                <td>128 items/h</td><td>68 items/h</td><td>79 items/h</td><td>46 items/h</td><td>39 items/h</td>
+              </tr>
+              <tr>
+                <th>Spent time</th>
+                <td>98.4 h</td><td>62.1 h</td><td>46.2 h</td><td>38.0 h</td><td>39.4 h</td>
+              </tr>
+              <tr>
+                <th>Idle time</th>
+                <td>6.4 h</td><td>2.1 h</td><td>3.7 h</td><td>9.8 h</td><td>15.2 h</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Backlog vs headcount per activity</div>
+          <div class="hbars">
+            <div class="hbar">
+              <div class="label">Picking · 18 HC</div>
+              <div class="track"><span style="width: 60%; background: var(--brand);"></span></div>
+              <div class="val">412</div>
+            </div>
+            <div class="hbar">
+              <div class="label">Packing · 8 HC</div>
+              <div class="track"><span style="width: 96%; background: var(--brand);"></span></div>
+              <div class="val">287</div>
+            </div>
+            <div class="hbar">
+              <div class="label">Expedition · 6 HC</div>
+              <div class="track"><span style="width: 56%; background: var(--brand);"></span></div>
+              <div class="val">156</div>
+            </div>
+            <div class="hbar">
+              <div class="label">Replenishment · 5 HC</div>
+              <div class="track"><span style="width: 22%; background: var(--brand);"></span></div>
+              <div class="val">61</div>
+            </div>
+            <div class="hbar">
+              <div class="label">Inbound · 5 HC</div>
+              <div class="track"><span style="width: 18%; background: var(--brand);"></span></div>
+              <div class="val">48</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div style="text-align:center; color: var(--text-dim); font-size: 11px; padding: 18px 0 24px 0;">
+        Prototype · static mocked data · Warehouse Live Operations BI · v0.2
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Tab switching (sidebar items + top tab strip both control the same pages)
+  (function () {
+    var tabButtons = document.querySelectorAll('[data-tab]');
+    var pages = document.querySelectorAll('.page');
+
+    function activate(tabName) {
+      tabButtons.forEach(function (btn) {
+        if (btn.getAttribute('data-tab') === tabName) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      pages.forEach(function (p) {
+        if (p.id === 'page-' + tabName) {
+          p.classList.add('active');
+        } else {
+          p.classList.remove('active');
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+    }
+
+    tabButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        activate(btn.getAttribute('data-tab'));
+      });
+    });
+  })();
+</script>
+</body>
+</html>
